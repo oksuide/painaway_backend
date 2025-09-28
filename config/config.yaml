@@ -1,0 +1,20 @@
+env: "local" # local, dev, prod
+log_level: "debug" 
+
+http_server:
+  address: "localhost:8080"
+  server_port: "8080"
+  timeout: 5s
+  idle_timeout: 1m
+
+db:
+  host: "localhost"
+  port: 5432
+  user: "postgres"
+  password: "postgres"
+  name: "painaway"
+  sslmode: "disable"
+
+jwt:
+  secret_key: "SuperVerySecretKeyPleaseDontHackMe"
+  duration: 24h

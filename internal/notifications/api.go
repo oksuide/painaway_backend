@@ -1,0 +1,108 @@
+package notifications
+
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
+	"go.uber.org/zap"
+)
+
+type Handler struct {
+	Service *Service
+	Hub     *Hub
+	Logger  *zap.Logger
+}
+
+func RegisterRoutes(rg *gin.RouterGroup, service *Service, hub *Hub, logger *zap.Logger) {
+	h := &Handler{Service: service, Logger: logger, Hub: hub}
+	rg.GET("/diary/notifications/", h.GetNotifications)
+	rg.PATCH("/diary/notifications/", h.MarkNotificationRead)
+	rg.DELETE("/diary/notifications/", h.DeleteNotification)
+}
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool { return true },
+}
+
+func (h *Handler) WsNotifications(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	uid := userID.(uint)
+
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		h.Logger.Error("failed to upgrade websocket connection", zap.Uint("userID", uid), zap.Error(err))
+		return
+	}
+	defer conn.Close()
+
+	h.Hub.Register(uid, conn)
+	h.Logger.Info("user connected to notifications hub", zap.Uint("userID", uid))
+	defer func() {
+		h.Hub.Unregister(uid)
+		h.Logger.Info("user disconnected from notifications hub", zap.Uint("userID", uid))
+	}()
+
+	for {
+		if _, _, err := conn.NextReader(); err != nil {
+			break
+		}
+	}
+}
+
+func (h *Handler) GetNotifications(c *gin.Context) {
+	userID, _ := c.Get("userID")
+
+	notifications, err := h.Service.GetNotifications(userID.(uint))
+	if err != nil {
+		h.Logger.Error("failed to get notifications", zap.Uint("userID", userID.(uint)), zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	h.Logger.Info("notifications retrieved", zap.Uint("userID", userID.(uint)), zap.Int("count", len(notifications)))
+	c.JSON(http.StatusOK, notifications)
+}
+
+func (h *Handler) MarkNotificationRead(c *gin.Context) {
+	userID, _ := c.Get("userID")
+
+	var req struct {
+		NotificationID uint `json:"notification_id"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.Logger.Warn("invalid request body in MarkNotificationRead", zap.Uint("userID", userID.(uint)), zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.Service.MarkNotificationRead(req.NotificationID, userID.(uint)); err != nil {
+		h.Logger.Error("failed to mark notification as read", zap.Uint("userID", userID.(uint)), zap.Uint("notificationID", req.NotificationID), zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	h.Logger.Info("notification marked as read", zap.Uint("userID", userID.(uint)), zap.Uint("notificationID", req.NotificationID))
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) DeleteNotification(c *gin.Context) {
+	userID, _ := c.Get("userID")
+
+	var req struct {
+		NotificationID uint `json:"notification_id"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.Logger.Warn("invalid request body in DeleteNotification", zap.Uint("userID", userID.(uint)), zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.Service.DeleteNotification(req.NotificationID, userID.(uint)); err != nil {
+		h.Logger.Error("failed to delete notification", zap.Uint("userID", userID.(uint)), zap.Uint("notificationID", req.NotificationID), zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	h.Logger.Info("notification deleted", zap.Uint("userID", userID.(uint)), zap.Uint("notificationID", req.NotificationID))
+	c.Status(http.StatusNoContent)
+}

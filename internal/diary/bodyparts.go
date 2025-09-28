@@ -1,0 +1,53 @@
+package diary
+
+type BodyPart struct {
+	ID          int    `json:"id"`
+	Translation string `json:"translation"`
+}
+
+var BodyParts = []BodyPart{
+	{ID: 1, Translation: "Голова"},
+	{ID: 2, Translation: "Лицо"},
+	{ID: 3, Translation: "Шея"},
+	{ID: 4, Translation: "Левое плечо"},
+	{ID: 5, Translation: "Правое плечо"},
+	{ID: 6, Translation: "Левая рука"},
+	{ID: 7, Translation: "Левое предплечье"},
+	{ID: 8, Translation: "Правая рука"},
+	{ID: 9, Translation: "Правое предплечье"},
+	{ID: 10, Translation: "Левая часть груди"},
+	{ID: 11, Translation: "Правая часть груди"},
+	{ID: 12, Translation: "Левая часть живота"},
+	{ID: 13, Translation: "Левые рёбра"},
+	{ID: 14, Translation: "Правая часть живота"},
+	{ID: 15, Translation: "Живот"},
+	{ID: 16, Translation: "Правые рёбра"},
+	{ID: 17, Translation: "Левое бедро"},
+	{ID: 18, Translation: "Левая внутренняя часть бедра"},
+	{ID: 19, Translation: "Левая ступня"},
+	{ID: 20, Translation: "Левая икра"},
+	{ID: 21, Translation: "Левое колено"},
+	{ID: 22, Translation: "Правое бедро"},
+	{ID: 23, Translation: "Гениталии"},
+	{ID: 24, Translation: "Правая внутренняя часть бедра"},
+	{ID: 25, Translation: "Правая ступня"},
+	{ID: 26, Translation: "Правая икра"},
+	{ID: 27, Translation: "Правое колено"},
+	{ID: 28, Translation: "Правый локтевой сустав"},
+	{ID: 29, Translation: "Правая ладонь"},
+	{ID: 30, Translation: "Левый локтевой сустав"},
+	{ID: 31, Translation: "Левая ладонь"},
+	{ID: 32, Translation: "Левая задняя часть плеча"},
+	{ID: 33, Translation: "Левая нога (сзади)"},
+	{ID: 34, Translation: "Ягодицы"},
+	{ID: 35, Translation: "Поясница"},
+	{ID: 36, Translation: "Позвоночник"},
+	{ID: 37, Translation: "Задняя часть головы"},
+	{ID: 38, Translation: "Затылок"},
+	{ID: 39, Translation: "Правая задняя часть плеча"},
+	{ID: 40, Translation: "Правая нога (сзади)"},
+	{ID: 41, Translation: "Правая задняя часть спины"},
+	{ID: 42, Translation: "Правая ключица"},
+	{ID: 43, Translation: "Левая задняя часть спины"},
+	{ID: 44, Translation: "Левая ключица"},
+}
