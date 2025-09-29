@@ -23,7 +23,7 @@ type Subscription struct {
 	ID           uint   `gorm:"primaryKey"`
 	DoctorID     uint   `gorm:"not null"`
 	PatientID    uint   `gorm:"not null"`
-	Status       string `gorm:"not null"` // pending / accepted / rejected
+	Status       string `gorm:"not null; default:pending"` // pending / accepted / rejected
 	Prescription string
 	Diagnosis    string
 	CreatedAt    time.Time `gorm:"not null"`
@@ -35,7 +35,7 @@ type Subscription struct {
 
 type Note struct {
 	ID               uint      `json:"id" gorm:"primaryKey"`
-	DateRecorded     time.Time `json:"date_recorded" gorm:"autoCreateTime"`
+	CreatedAt        time.Time `json:"created_at" gorm:"autoCreateTime"`
 	Intensity        int       `json:"intensity" gorm:"not null"`
 	PainType         string    `json:"pain_type" gorm:"not null"`
 	TookPrescription bool      `json:"tookPrescription" gorm:"not null"`
