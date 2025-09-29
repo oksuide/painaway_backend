@@ -55,10 +55,10 @@ type DocRespondRequestDTO struct {
 
 type NoteDTO struct {
 	ID               uint      `json:"id" binding:"required"`
-	DateRecorded     time.Time `json:"date_record" binding:"required"`
+	DateRecorded     time.Time `json:"date_recorded" binding:"required"`
 	Intensity        int       `json:"intensity" binding:"required"`
 	PainType         string    `json:"pain_type" binding:"required"`
-	TookPrescription bool      `json:"took_prescription" binding:"required"`
+	TookPrescription bool      `json:"tookPrescription" binding:"required"`
 	Description      string    `json:"description" binding:"required"`
 	BodyPart         int       `json:"body_part" binding:"required"`
 }

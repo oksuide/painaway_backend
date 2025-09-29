@@ -3,25 +3,27 @@ package auth
 import (
 	"net/http"
 	"painaway_test/internal/config"
+	"painaway_test/internal/response"
 	"painaway_test/internal/utils"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
+	"go.uber.org/zap"
 )
 
-func AuthMiddleware(cfg *config.JWTConfig) gin.HandlerFunc {
+func AuthMiddleware(cfg *config.JWTConfig, logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "authorization header missing"})
+			response.NewErrorRepsonse(c, http.StatusUnauthorized, "authorization header missing", logger)
 			c.Abort()
 			return
 		}
 
 		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || (parts[0] != "Bearer" && parts[0] != "Token") {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization header format"})
+		if len(parts) != 2 || parts[0] != "Token" {
+			response.NewErrorRepsonse(c, http.StatusUnauthorized, "invalid authorization header format", logger)
 			c.Abort()
 			return
 		}
@@ -32,14 +34,14 @@ func AuthMiddleware(cfg *config.JWTConfig) gin.HandlerFunc {
 			return []byte(cfg.SecretKey), nil
 		})
 		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
+			response.NewErrorRepsonse(c, http.StatusUnauthorized, "invalid or expired token", logger)
 			c.Abort()
 			return
 		}
 
 		claims, ok := token.Claims.(*utils.Claims)
 		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token claims"})
+			response.NewErrorRepsonse(c, http.StatusUnauthorized, "invalid token claims", logger)
 			c.Abort()
 			return
 		}

@@ -23,7 +23,7 @@ func NewService(repo Repository, notifSrv *notifications.Service, logger *zap.Lo
 }
 
 func (s *Service) PatientListLinks(userID uint) ([]utils.PatientLinkDTO, error) {
-	subs, err := s.Repo.GetSubscriptionsByPatientID(userID)
+	subs, err := s.Repo.GetSubscriptionsByPatientID(userID, 0, 20)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (s *Service) PatientListLinks(userID uint) ([]utils.PatientLinkDTO, error) 
 }
 
 func (s *Service) DoctorListLinks(userID uint) ([]utils.DoctorLinkDTO, error) {
-	subs, err := s.Repo.GetSubscriptionsByDoctorID(userID)
+	subs, err := s.Repo.GetSubscriptionsByDoctorID(userID, 0, 20)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (s *Service) DoctorListLinks(userID uint) ([]utils.DoctorLinkDTO, error) {
 }
 
 func (s *Service) LinkDoc(patientID uint, docUsername string) (*utils.PatientLinkDTO, error) {
-	doc, err := s.Repo.FindDoctorByUsername(docUsername)
+	doc, err := s.Repo.GetDoctorByUsername(docUsername)
 	if err != nil {
 		return nil, err
 	}
@@ -183,8 +183,8 @@ func (s *Service) SetDiagnosis(req utils.SetDiagnosisDTO) error {
 	return s.Repo.UpdateLink(link)
 }
 
-func (s *Service) GetUserAllBodyStats(patientID uint) ([]models.Note, error) {
-	stats, err := s.Repo.GetAllBodyStatByPatientID(patientID)
+func (s *Service) GetUserAllStats(patientID uint) ([]models.Note, error) {
+	stats, err := s.Repo.GetAllStatByPatientID(patientID)
 	if err != nil {
 		return nil, err
 	}
@@ -202,4 +202,22 @@ func (s *Service) GetBodyParts() []BodyPart {
 
 func (s *Service) CreateNote(note *models.Note) error {
 	return s.Repo.CreateNote(note)
+}
+
+func (s *Service) ToNoteDTO(notes []models.Note) []utils.NoteDTO {
+	dto := make([]utils.NoteDTO, 0, len(notes))
+
+	for _, n := range notes {
+		dto = append(dto, utils.NoteDTO{
+			ID:               n.ID,
+			DateRecorded:     n.CreatedAt,
+			Intensity:        n.Intensity,
+			PainType:         n.PainType,
+			TookPrescription: n.TookPrescription,
+			Description:      n.Description,
+			BodyPart:         int(n.BodyPart),
+		})
+	}
+
+	return dto
 }

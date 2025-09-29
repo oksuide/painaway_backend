@@ -13,7 +13,7 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func GenerateAccessToken(cfg config.JWTConfig, userID uint, email, groups string) (string, error) {
+func GenerateAccessToken(cfg config.JWTConfig, userID uint, groups string) (string, error) {
 	now := time.Now()
 
 	claims := Claims{

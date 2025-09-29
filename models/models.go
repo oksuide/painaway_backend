@@ -5,49 +5,51 @@ import "time"
 //TODO: Разбить на сущности
 
 type User struct {
-	ID          uint      `gorm:"primaryKey"`
-	Username    string    `gorm:"unique;not null"`
-	Email       string    `gorm:"unique;not null"`
-	Password    string    `gorm:"not null"`
-	FirstName   string    `gorm:"not null"`
-	LastName    string    `gorm:"not null"`
-	FatherName  string    `gorm:"not null"`
-	Sex         string    `gorm:"not null"`
-	DateOfBirth time.Time `gorm:"not null"`
-	Groups      string    `gorm:"default:Patient; not null"`
-	Created_at  time.Time `gorm:"not null"`
-	Updated_at  time.Time `gorm:"not null"`
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	Username    string    `gorm:"unique;not null" json:"username"`
+	Email       string    `gorm:"unique;not null" json:"email"`
+	Password    string    `gorm:"not null" json:"-"`
+	FirstName   string    `gorm:"not null" json:"first_name"`
+	LastName    string    `gorm:"not null" json:"last_name"`
+	FatherName  string    `gorm:"not null" json:"father_name"`
+	Sex         string    `gorm:"not null" json:"sex"`
+	DateOfBirth time.Time `gorm:"not null" json:"date_of_birth"`
+	Groups      string    `gorm:"default:Patient; not null" json:"groups"`
+	CreatedAt   time.Time `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt   time.Time `gorm:"autoUpdateTime" json:"updated_at"`
 }
 
 type Subscription struct {
-	ID           uint   `gorm:"primaryKey"`
-	DoctorID     uint   `gorm:"not null"`
-	PatientID    uint   `gorm:"not null"`
-	Status       string `gorm:"not null; default:pending"` // pending / accepted / rejected
-	Prescription string
-	Diagnosis    string
-	CreatedAt    time.Time `gorm:"not null"`
-	UpdatedAt    time.Time `gorm:"not null"`
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	DoctorID     uint      `gorm:"not null" json:"doctor_id"`
+	PatientID    uint      `gorm:"not null" json:"patient_id"`
+	Status       string    `gorm:"not null;default:pending" json:"status"` // pending / accepted / rejected
+	Prescription string    `json:"prescription,omitempty"`
+	Diagnosis    string    `json:"diagnosis,omitempty"`
+	CreatedAt    time.Time `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt    time.Time `gorm:"autoUpdateTime" json:"updated_at"`
 
-	Doctor  User `gorm:"foreignKey:DoctorID"`
-	Patient User `gorm:"foreignKey:PatientID"`
+	Doctor  User `gorm:"foreignKey:DoctorID" json:"doctor"`
+	Patient User `gorm:"foreignKey:PatientID" json:"patient"`
 }
 
 type Note struct {
-	ID               uint      `json:"id" gorm:"primaryKey"`
-	CreatedAt        time.Time `json:"created_at" gorm:"autoCreateTime"`
-	Intensity        int       `json:"intensity" gorm:"not null"`
-	PainType         string    `json:"pain_type" gorm:"not null"`
-	TookPrescription bool      `json:"tookPrescription" gorm:"not null"`
-	Description      string    `json:"description"`
-	BodyPart         uint      `json:"body_part" gorm:"not null"`
-	PatientID        uint      `json:"patient_id" gorm:"not null"`
+	ID               uint      `gorm:"primaryKey" json:"id"`
+	CreatedAt        time.Time `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt        time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+	Intensity        int       `gorm:"not null" json:"intensity"`
+	PainType         string    `gorm:"not null" json:"pain_type"`
+	TookPrescription bool      `gorm:"not null" json:"took_prescription"`
+	Description      string    `json:"description,omitempty"`
+	BodyPart         uint      `gorm:"not null" json:"body_part"`
+	PatientID        uint      `gorm:"not null" json:"patient_id"`
 }
 
 type Notification struct {
-	ID        uint      `json:"id" gorm:"primaryKey"`
-	UserID    uint      `json:"user_id" gorm:"not null"`
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	UserID    uint      `gorm:"not null" json:"user_id"`
 	Message   string    `json:"message"`
-	IsRead    bool      `json:"is_read" gorm:"not null; default:False"`
-	CreatedAt time.Time `json:"created_at" gorm:"not null"`
+	IsRead    bool      `gorm:"not null;default:false" json:"is_read"`
+	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updated_at"`
 }

@@ -11,10 +11,10 @@ type Repo struct {
 }
 
 type Repository interface {
-	GetNotifications(userID uint) ([]models.Notification, error)
-	MarkNotificationRead(id uint, userID uint) error
-	DeleteNotification(id uint, userID uint) error
 	CreateNotification(notification *models.Notification) error
+	GetNotifications(userID uint) ([]models.Notification, error)
+	DeleteNotification(id uint, userID uint) error
+	MarkNotificationRead(id uint, userID uint) error
 }
 
 func NewRepository(db *gorm.DB) Repository {

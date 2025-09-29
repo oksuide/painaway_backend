@@ -1,11 +1,13 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
 	"painaway_test/internal/users"
 	"painaway_test/models"
 
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type Service struct {
@@ -17,7 +19,7 @@ func NewService(userRepo users.Repository) *Service {
 }
 
 func (s *Service) Register(user *models.User) error {
-	exists, err := s.UserRepo.EmailExists(user.Email)
+	exists, err := s.UserRepo.IsUserExistWithEmail(user.Email)
 	if err != nil {
 		return err
 	}
@@ -25,7 +27,7 @@ func (s *Service) Register(user *models.User) error {
 		return fmt.Errorf("email already registered")
 	}
 
-	exists, err = s.UserRepo.UserExists(user.Username)
+	exists, err = s.UserRepo.IsUserExistWithUsername(user.Username)
 	if err != nil {
 		return err
 	}
@@ -45,10 +47,14 @@ func (s *Service) Register(user *models.User) error {
 func (s *Service) Login(username, password string) (*models.User, error) {
 	user, err := s.UserRepo.GetUserByUsername(username)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("invalid credentials")
+		}
 		return nil, err
 	}
+
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid credentials")
 	}
 	return user, nil
 }

@@ -18,3 +18,6 @@ db:
 jwt:
   secret_key: "SuperVerySecretKeyPleaseDontHackMe"
   duration: 24h
+
+
+#TODO: replace sencitive in env 

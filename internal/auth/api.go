@@ -3,6 +3,7 @@ package auth
 import (
 	"net/http"
 	"painaway_test/internal/config"
+	"painaway_test/internal/response"
 	"painaway_test/internal/utils"
 	"painaway_test/models"
 	"time"
@@ -25,7 +26,7 @@ func RegisterRoutes(rg *gin.RouterGroup, service *Service, jwtCfg *config.JWTCon
 }
 
 func (h *Handler) Register(c *gin.Context) {
-	var req struct {
+	var input struct {
 		Username    string `json:"username"`
 		Email       string `json:"email"`
 		Password    string `json:"password"`
@@ -36,60 +37,69 @@ func (h *Handler) Register(c *gin.Context) {
 		DateOfBirth string `json:"date_of_birth"`
 	}
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.Logger.Warn("Failed to bind register request", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := c.ShouldBindJSON(&input); err != nil {
+		response.NewErrorRepsonse(c, http.StatusBadRequest, "invalid request body", h.Logger)
 		return
 	}
 
-	var dob time.Time
-	if req.DateOfBirth != "" {
-		dob, _ = time.Parse("2006-01-02", req.DateOfBirth)
+	dob, err := time.Parse(time.DateOnly, input.DateOfBirth)
+	if err != nil {
+		response.NewErrorRepsonse(c, http.StatusBadRequest, "date_of_birth must be in YYYY-MM-DD format", h.Logger)
+		return
 	}
 
 	user := &models.User{
-		Username:    req.Username,
-		Email:       req.Email,
-		Password:    req.Password,
-		FirstName:   req.FirstName,
-		LastName:    req.LastName,
-		FatherName:  req.FatherName,
-		Sex:         req.Sex,
+		Username:    input.Username,
+		Email:       input.Email,
+		Password:    input.Password,
+		FirstName:   input.FirstName,
+		LastName:    input.LastName,
+		FatherName:  input.FatherName,
+		Sex:         input.Sex,
 		DateOfBirth: dob,
-		Groups:      "Patient", // по умолчанию
-		Created_at:  time.Now(),
-		Updated_at:  time.Now(),
+		Groups:      "Patient",
 	}
 
 	if err := h.Service.Register(user); err != nil {
 		h.Logger.Error("Failed to register user", zap.Error(err), zap.String("email", user.Email), zap.String("username", user.Username))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.NewErrorRepsonse(c, http.StatusInternalServerError, "registration failed", h.Logger)
 		return
 	}
 
+	token, err := utils.GenerateAccessToken(*h.JWTConfig, user.ID, user.Groups)
+	if err != nil {
+		h.Logger.Error("failed to generate access token", zap.Error(err), zap.Uint("userID", user.ID))
+		response.NewErrorRepsonse(c, http.StatusInternalServerError, "failed to generate token", h.Logger)
+		return
+	}
 	h.Logger.Info("User registered successfully", zap.String("email", user.Email), zap.String("username", user.Username))
-	c.JSON(http.StatusCreated, gin.H{"message": "user created"})
+	c.JSON(http.StatusOK, gin.H{
+		"token": token,
+		"user": gin.H{
+			"id":       user.ID,
+			"username": user.Username,
+			"groups":   user.Groups,
+		},
+	})
 }
 
 func (h *Handler) Login(c *gin.Context) {
-	var req struct {
+	var input struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.Logger.Warn("Failed to bind login request", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := c.ShouldBindJSON(&input); err != nil {
+		response.NewErrorRepsonse(c, http.StatusBadRequest, "invalid request body", h.Logger)
 		return
 	}
 
-	user, err := h.Service.Login(req.Username, req.Password)
+	user, err := h.Service.Login(input.Username, input.Password)
 	if err != nil {
-		h.Logger.Warn("Invalid login attempt", zap.String("username", req.Username))
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+		response.NewErrorRepsonse(c, http.StatusUnauthorized, "invalid credentials", h.Logger)
 		return
 	}
 
-	token, _ := utils.GenerateAccessToken(*h.JWTConfig, user.ID, user.Email, user.Groups)
+	token, _ := utils.GenerateAccessToken(*h.JWTConfig, user.ID, user.Groups)
 	h.Logger.Info("User logged in successfully", zap.String("username", user.Username), zap.Uint("user_id", user.ID))
 
 	c.JSON(http.StatusOK, gin.H{

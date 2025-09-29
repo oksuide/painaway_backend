@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"net/http"
+	"painaway_test/internal/response"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -26,12 +27,17 @@ var upgrader = websocket.Upgrader{
 }
 
 func (h *Handler) WsNotifications(c *gin.Context) {
-	userID, _ := c.Get("userID")
+	userID, exists := c.Get("userID")
+	if !exists {
+		response.NewErrorRepsonse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
+		return
+	}
 	uid := userID.(uint)
 
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		h.Logger.Error("failed to upgrade websocket connection", zap.Uint("userID", uid), zap.Error(err))
+		response.NewErrorRepsonse(c, http.StatusInternalServerError, "failed to establish websocket connection", h.Logger)
 		return
 	}
 	defer conn.Close()
@@ -51,12 +57,16 @@ func (h *Handler) WsNotifications(c *gin.Context) {
 }
 
 func (h *Handler) GetNotifications(c *gin.Context) {
-	userID, _ := c.Get("userID")
+	userID, exists := c.Get("userID")
+	if !exists {
+		response.NewErrorRepsonse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
+		return
+	}
 
 	notifications, err := h.Service.GetNotifications(userID.(uint))
 	if err != nil {
 		h.Logger.Error("failed to get notifications", zap.Uint("userID", userID.(uint)), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.NewErrorRepsonse(c, http.StatusInternalServerError, "failed to fetch notifications", h.Logger)
 		return
 	}
 
@@ -65,20 +75,23 @@ func (h *Handler) GetNotifications(c *gin.Context) {
 }
 
 func (h *Handler) MarkNotificationRead(c *gin.Context) {
-	userID, _ := c.Get("userID")
+	userID, exists := c.Get("userID")
+	if !exists {
+		response.NewErrorRepsonse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
+		return
+	}
 
 	var req struct {
 		NotificationID uint `json:"notification_id"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.Logger.Warn("invalid request body in MarkNotificationRead", zap.Uint("userID", userID.(uint)), zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.NewErrorRepsonse(c, http.StatusBadRequest, "invalid request body", h.Logger)
 		return
 	}
 
 	if err := h.Service.MarkNotificationRead(req.NotificationID, userID.(uint)); err != nil {
 		h.Logger.Error("failed to mark notification as read", zap.Uint("userID", userID.(uint)), zap.Uint("notificationID", req.NotificationID), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.NewErrorRepsonse(c, http.StatusInternalServerError, "failed to mark notification as read", h.Logger)
 		return
 	}
 	h.Logger.Info("notification marked as read", zap.Uint("userID", userID.(uint)), zap.Uint("notificationID", req.NotificationID))
@@ -86,20 +99,23 @@ func (h *Handler) MarkNotificationRead(c *gin.Context) {
 }
 
 func (h *Handler) DeleteNotification(c *gin.Context) {
-	userID, _ := c.Get("userID")
-
+	userID, exists := c.Get("userID")
+	if !exists {
+		response.NewErrorRepsonse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
+		return
+	}
 	var req struct {
 		NotificationID uint `json:"notification_id"`
 	}
+
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.Logger.Warn("invalid request body in DeleteNotification", zap.Uint("userID", userID.(uint)), zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.NewErrorRepsonse(c, http.StatusBadRequest, "invalid request body", h.Logger)
 		return
 	}
 
 	if err := h.Service.DeleteNotification(req.NotificationID, userID.(uint)); err != nil {
 		h.Logger.Error("failed to delete notification", zap.Uint("userID", userID.(uint)), zap.Uint("notificationID", req.NotificationID), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.NewErrorRepsonse(c, http.StatusInternalServerError, "failed to delete notification", h.Logger)
 		return
 	}
 
