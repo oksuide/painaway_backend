@@ -78,8 +78,8 @@ func (s *Service) DoctorListLinks(userID uint) ([]utils.DoctorLinkDTO, error) {
 		dto := utils.DoctorLinkDTO{
 			ID:           sub.ID,
 			Status:       sub.Status,
-			Prescription: utils.SetPrescriptionDTO{Prescription: sub.Prescription},
-			Diagnosis:    utils.SetDiagnosisDTO{Diagnosis: sub.Diagnosis},
+			Prescription: utils.UpdatePrescriptionDTO{Prescription: sub.Prescription, ID: sub.ID},
+			Diagnosis:    utils.UpdateDiagnosisDTO{Diagnosis: sub.Diagnosis, ID: sub.ID},
 			Patient: utils.PatientDTO{
 				ID:          sub.Patient.ID,
 				FirstName:   sub.Patient.FirstName,

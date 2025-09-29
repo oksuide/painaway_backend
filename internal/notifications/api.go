@@ -29,7 +29,7 @@ var upgrader = websocket.Upgrader{
 func (h *Handler) WsNotifications(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
-		response.NewErrorRepsonse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
+		response.NewErrorResponse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
 		return
 	}
 	uid := userID.(uint)
@@ -37,7 +37,7 @@ func (h *Handler) WsNotifications(c *gin.Context) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		h.Logger.Error("failed to upgrade websocket connection", zap.Uint("userID", uid), zap.Error(err))
-		response.NewErrorRepsonse(c, http.StatusInternalServerError, "failed to establish websocket connection", h.Logger)
+		response.NewErrorResponse(c, http.StatusInternalServerError, "failed to establish websocket connection", h.Logger)
 		return
 	}
 	defer conn.Close()
@@ -59,14 +59,14 @@ func (h *Handler) WsNotifications(c *gin.Context) {
 func (h *Handler) GetNotifications(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
-		response.NewErrorRepsonse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
+		response.NewErrorResponse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
 		return
 	}
 
 	notifications, err := h.Service.GetNotifications(userID.(uint))
 	if err != nil {
 		h.Logger.Error("failed to get notifications", zap.Uint("userID", userID.(uint)), zap.Error(err))
-		response.NewErrorRepsonse(c, http.StatusInternalServerError, "failed to fetch notifications", h.Logger)
+		response.NewErrorResponse(c, http.StatusInternalServerError, "failed to fetch notifications", h.Logger)
 		return
 	}
 
@@ -77,7 +77,7 @@ func (h *Handler) GetNotifications(c *gin.Context) {
 func (h *Handler) MarkNotificationRead(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
-		response.NewErrorRepsonse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
+		response.NewErrorResponse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
 		return
 	}
 
@@ -85,13 +85,13 @@ func (h *Handler) MarkNotificationRead(c *gin.Context) {
 		NotificationID uint `json:"notification_id"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.NewErrorRepsonse(c, http.StatusBadRequest, "invalid request body", h.Logger)
+		response.NewErrorResponse(c, http.StatusBadRequest, "invalid request body", h.Logger)
 		return
 	}
 
 	if err := h.Service.MarkNotificationRead(req.NotificationID, userID.(uint)); err != nil {
 		h.Logger.Error("failed to mark notification as read", zap.Uint("userID", userID.(uint)), zap.Uint("notificationID", req.NotificationID), zap.Error(err))
-		response.NewErrorRepsonse(c, http.StatusInternalServerError, "failed to mark notification as read", h.Logger)
+		response.NewErrorResponse(c, http.StatusInternalServerError, "failed to mark notification as read", h.Logger)
 		return
 	}
 	h.Logger.Info("notification marked as read", zap.Uint("userID", userID.(uint)), zap.Uint("notificationID", req.NotificationID))
@@ -101,7 +101,7 @@ func (h *Handler) MarkNotificationRead(c *gin.Context) {
 func (h *Handler) DeleteNotification(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
-		response.NewErrorRepsonse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
+		response.NewErrorResponse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
 		return
 	}
 	var req struct {
@@ -109,13 +109,13 @@ func (h *Handler) DeleteNotification(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.NewErrorRepsonse(c, http.StatusBadRequest, "invalid request body", h.Logger)
+		response.NewErrorResponse(c, http.StatusBadRequest, "invalid request body", h.Logger)
 		return
 	}
 
 	if err := h.Service.DeleteNotification(req.NotificationID, userID.(uint)); err != nil {
 		h.Logger.Error("failed to delete notification", zap.Uint("userID", userID.(uint)), zap.Uint("notificationID", req.NotificationID), zap.Error(err))
-		response.NewErrorRepsonse(c, http.StatusInternalServerError, "failed to delete notification", h.Logger)
+		response.NewErrorResponse(c, http.StatusInternalServerError, "failed to delete notification", h.Logger)
 		return
 	}
 

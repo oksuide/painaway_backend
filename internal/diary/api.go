@@ -19,24 +19,32 @@ type Handler struct {
 
 func RegisterRoutes(rg *gin.RouterGroup, service *Service, logger *zap.Logger) {
 	h := &Handler{Service: service, Logger: logger}
-	rg.GET("/diary/list_links", h.ListLinks)
 	rg.POST("/diary/link_doc/", h.LinkDoc)
 	rg.POST("/diary/doc_respond", h.DocRespond)
-	rg.GET("/diary/stats/", h.GetUserStats)
-	rg.GET("/diary/bodyparts/", h.GetBodyParts)
 	rg.POST("/diary/stats/", h.CreateNote)
 	rg.POST("/diary/diagnosis", h.SetDiagnosis)
 	rg.POST("/diary/prescription", h.SetPrescription)
+	rg.GET("/diary/list_links", h.ListLinks)
+	rg.GET("/diary/stats/", h.GetUserStats)
+	rg.GET("/diary/bodyparts/", h.GetBodyParts)
+	rg.PATCH("/diary/diagnosis", h.SetDiagnosis)
+	rg.PATCH("/diary/prescription", h.SetPrescription)
 }
 
+// :5173/api/diary/prescription/?prescription_id=undefined:1
 func (h *Handler) ListLinks(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
-		response.NewErrorRepsonse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
+		response.NewErrorResponse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
 
 		return
 	}
-	userGroups, _ := c.Get("groups")
+	userGroups, exists := c.Get("groups")
+	if !exists {
+		response.NewErrorResponse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
+
+		return
+	}
 
 	switch userGroups {
 	case "Doctor":
@@ -46,7 +54,7 @@ func (h *Handler) ListLinks(c *gin.Context) {
 				zap.Uint("userID", userID.(uint)),
 				zap.Error(err))
 
-			response.NewErrorRepsonse(c, http.StatusInternalServerError, "failed to fetch doctor links", h.Logger)
+			response.NewErrorResponse(c, http.StatusInternalServerError, "failed to fetch doctor links", h.Logger)
 			return
 		}
 
@@ -63,7 +71,7 @@ func (h *Handler) ListLinks(c *gin.Context) {
 				zap.Uint("userID", userID.(uint)),
 				zap.Error(err))
 
-			response.NewErrorRepsonse(c, http.StatusInternalServerError, "failed to fetch patient links", h.Logger)
+			response.NewErrorResponse(c, http.StatusInternalServerError, "failed to fetch patient links", h.Logger)
 			return
 		}
 
@@ -74,7 +82,7 @@ func (h *Handler) ListLinks(c *gin.Context) {
 		c.JSON(http.StatusOK, links)
 
 	default:
-		response.NewErrorRepsonse(c, http.StatusForbidden, "invalid user group", h.Logger)
+		response.NewErrorResponse(c, http.StatusForbidden, "invalid user group", h.Logger)
 		return
 	}
 
@@ -83,13 +91,13 @@ func (h *Handler) ListLinks(c *gin.Context) {
 func (h *Handler) LinkDoc(c *gin.Context) {
 	var req utils.SelectDoctorRequestDTO
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.NewErrorRepsonse(c, http.StatusBadRequest, "invalid request body", h.Logger)
+		response.NewErrorResponse(c, http.StatusBadRequest, "invalid request body", h.Logger)
 		return
 	}
 
 	patientID, exists := c.Get("userID")
 	if !exists {
-		response.NewErrorRepsonse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
+		response.NewErrorResponse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
 		return
 	}
 
@@ -100,7 +108,7 @@ func (h *Handler) LinkDoc(c *gin.Context) {
 			zap.String("docUsername", req.DocUsername),
 			zap.Error(err))
 
-		response.NewErrorRepsonse(c, http.StatusInternalServerError, "failed to link doctor", h.Logger)
+		response.NewErrorResponse(c, http.StatusInternalServerError, "failed to link doctor", h.Logger)
 		return
 	}
 	h.Logger.Info("doctor linked successfully",
@@ -113,13 +121,13 @@ func (h *Handler) LinkDoc(c *gin.Context) {
 func (h *Handler) DocRespond(c *gin.Context) {
 	var req utils.DocRespondRequestDTO
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.NewErrorRepsonse(c, http.StatusBadRequest, "invalid request body", h.Logger)
+		response.NewErrorResponse(c, http.StatusBadRequest, "invalid request body", h.Logger)
 		return
 	}
 
 	doctorID, exists := c.Get("userID")
 	if !exists {
-		response.NewErrorRepsonse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
+		response.NewErrorResponse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
 		return
 	}
 
@@ -129,7 +137,7 @@ func (h *Handler) DocRespond(c *gin.Context) {
 			zap.String("action", req.Action),
 			zap.Error(err))
 
-		response.NewErrorRepsonse(c, http.StatusInternalServerError, "failed to respond to link request", h.Logger)
+		response.NewErrorResponse(c, http.StatusInternalServerError, "failed to respond to link request", h.Logger)
 		return
 	}
 	h.Logger.Info("link request responded",
@@ -141,10 +149,21 @@ func (h *Handler) DocRespond(c *gin.Context) {
 }
 
 func (h *Handler) SetPrescription(c *gin.Context) {
+	idStr := c.Query("prescription_id")
+
 	var req utils.SetPrescriptionDTO
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.NewErrorRepsonse(c, http.StatusBadRequest, "invalid request body", h.Logger)
+		response.NewErrorResponse(c, http.StatusBadRequest, "invalid request body", h.Logger)
 		return
+	}
+
+	if idStr != "" {
+		idUint, err := strconv.ParseUint(idStr, 10, 32)
+		if err != nil {
+			response.NewErrorResponse(c, http.StatusBadRequest, "invalid prescription id query parameter", h.Logger)
+			return
+		}
+		req.Link = uint(idUint)
 	}
 
 	if err := h.Service.SetPrescription(req); err != nil {
@@ -153,7 +172,7 @@ func (h *Handler) SetPrescription(c *gin.Context) {
 			zap.String("prescription", req.Prescription),
 			zap.Error(err))
 
-		response.NewErrorRepsonse(c, http.StatusInternalServerError, "failed to set prescription", h.Logger)
+		response.NewErrorResponse(c, http.StatusInternalServerError, "failed to set prescription", h.Logger)
 		return
 	}
 	h.Logger.Info("prescription set successfully",
@@ -164,10 +183,21 @@ func (h *Handler) SetPrescription(c *gin.Context) {
 }
 
 func (h *Handler) SetDiagnosis(c *gin.Context) {
+	idStr := c.Query("diagnosis_id")
+
 	var req utils.SetDiagnosisDTO
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.NewErrorRepsonse(c, http.StatusBadRequest, "invalid request body", h.Logger)
+		response.NewErrorResponse(c, http.StatusBadRequest, "invalid request body", h.Logger)
 		return
+	}
+
+	if idStr != "" {
+		idUint, err := strconv.ParseUint(idStr, 10, 32)
+		if err != nil {
+			response.NewErrorResponse(c, http.StatusBadRequest, "invalid diagnosis id query parameter", h.Logger)
+			return
+		}
+		req.Link = uint(idUint)
 	}
 
 	if err := h.Service.SetDiagnosis(req); err != nil {
@@ -176,7 +206,7 @@ func (h *Handler) SetDiagnosis(c *gin.Context) {
 			zap.String("diagnosis", req.Diagnosis),
 			zap.Error(err))
 
-		response.NewErrorRepsonse(c, http.StatusInternalServerError, "failed to set diagnosis", h.Logger)
+		response.NewErrorResponse(c, http.StatusInternalServerError, "failed to set diagnosis", h.Logger)
 		return
 	}
 	h.Logger.Info("diagnosis set successfully", zap.Uint("linkID", uint(req.Link)), zap.String("diagnosis", req.Diagnosis))
@@ -186,13 +216,13 @@ func (h *Handler) SetDiagnosis(c *gin.Context) {
 func (h *Handler) GetUserStats(c *gin.Context) {
 	userID, err := h.resolveUserID(c)
 	if err != nil {
-		response.NewErrorRepsonse(c, http.StatusBadRequest, "invalid user id", h.Logger)
+		response.NewErrorResponse(c, http.StatusBadRequest, "invalid user id", h.Logger)
 		return
 	}
 
 	stats, err := h.Service.GetUserAllStats(userID)
 	if err != nil {
-		response.NewErrorRepsonse(c, http.StatusInternalServerError, "failed to get body stats", h.Logger)
+		response.NewErrorResponse(c, http.StatusInternalServerError, "failed to get body stats", h.Logger)
 		return
 	}
 	dtoStats := h.Service.ToNoteDTO(stats)
@@ -208,13 +238,13 @@ func (h *Handler) GetBodyParts(c *gin.Context) {
 func (h *Handler) CreateNote(c *gin.Context) {
 	patientID, exists := c.Get("userID")
 	if !exists {
-		response.NewErrorRepsonse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
+		response.NewErrorResponse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
 		return
 	}
 
 	var req models.Note
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.NewErrorRepsonse(c, http.StatusInternalServerError, "failed to create note", h.Logger)
+		response.NewErrorResponse(c, http.StatusInternalServerError, "failed to create note", h.Logger)
 		return
 	}
 
@@ -225,7 +255,7 @@ func (h *Handler) CreateNote(c *gin.Context) {
 			zap.Uint("patientID", patientID.(uint)),
 			zap.Error(err))
 
-		response.NewErrorRepsonse(c, http.StatusInternalServerError, "failed to create note", h.Logger)
+		response.NewErrorResponse(c, http.StatusInternalServerError, "failed to create note", h.Logger)
 		return
 	}
 
@@ -237,11 +267,11 @@ func (h *Handler) resolveUserID(c *gin.Context) (uint, error) {
 	idStr := c.Query("patient_id")
 
 	if idStr != "" {
-		idUint64, err := strconv.ParseUint(idStr, 10, 32)
+		idUint, err := strconv.ParseUint(idStr, 10, 32)
 		if err != nil {
 			return 0, fmt.Errorf("invalid id query parameter: %w", err)
 		}
-		return uint(idUint64), nil
+		return uint(idUint), nil
 	}
 
 	userIDValue, exists := c.Get("userID")

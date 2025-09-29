@@ -10,11 +10,11 @@ type PatientLinkDTO struct {
 }
 
 type DoctorLinkDTO struct {
-	ID           uint               `json:"id"`
-	Status       string             `json:"status"`
-	Patient      PatientDTO         `json:"patient"`
-	Prescription SetPrescriptionDTO `json:"prescription"`
-	Diagnosis    SetDiagnosisDTO    `json:"diagnosis"`
+	ID           uint                  `json:"id"`
+	Status       string                `json:"status"`
+	Patient      PatientDTO            `json:"patient"`
+	Prescription UpdatePrescriptionDTO `json:"prescription"`
+	Diagnosis    UpdateDiagnosisDTO    `json:"diagnosis"`
 }
 
 type DoctorDTO struct {
@@ -41,6 +41,15 @@ type SetPrescriptionDTO struct {
 
 type SetDiagnosisDTO struct {
 	Link      uint   `json:"link"`
+	Diagnosis string `json:"diagnosis"`
+}
+type UpdatePrescriptionDTO struct {
+	ID           uint   `json:"id"`
+	Prescription string `json:"prescription"`
+}
+
+type UpdateDiagnosisDTO struct {
+	ID        uint   `json:"id"`
 	Diagnosis string `json:"diagnosis"`
 }
 

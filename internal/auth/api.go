@@ -6,6 +6,7 @@ import (
 	"painaway_test/internal/response"
 	"painaway_test/internal/utils"
 	"painaway_test/models"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -38,23 +39,27 @@ func (h *Handler) Register(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		response.NewErrorRepsonse(c, http.StatusBadRequest, "invalid request body", h.Logger)
+		response.NewErrorResponse(c, http.StatusBadRequest, "invalid request body", h.Logger)
+		return
+	}
+	if len(input.Password) < 6 {
+		response.NewErrorResponse(c, http.StatusBadRequest, "password must be at least 6 characters long", h.Logger)
 		return
 	}
 
 	dob, err := time.Parse(time.DateOnly, input.DateOfBirth)
 	if err != nil {
-		response.NewErrorRepsonse(c, http.StatusBadRequest, "date_of_birth must be in YYYY-MM-DD format", h.Logger)
+		response.NewErrorResponse(c, http.StatusBadRequest, "date_of_birth must be in YYYY-MM-DD format", h.Logger)
 		return
 	}
 
 	user := &models.User{
-		Username:    input.Username,
+		Username:    strings.TrimSpace(input.Username),
 		Email:       input.Email,
 		Password:    input.Password,
-		FirstName:   input.FirstName,
-		LastName:    input.LastName,
-		FatherName:  input.FatherName,
+		FirstName:   strings.TrimSpace(input.FirstName),
+		LastName:    strings.TrimSpace(input.LastName),
+		FatherName:  strings.TrimSpace(input.FatherName),
 		Sex:         input.Sex,
 		DateOfBirth: dob,
 		Groups:      "Patient",
@@ -62,14 +67,14 @@ func (h *Handler) Register(c *gin.Context) {
 
 	if err := h.Service.Register(user); err != nil {
 		h.Logger.Error("Failed to register user", zap.Error(err), zap.String("email", user.Email), zap.String("username", user.Username))
-		response.NewErrorRepsonse(c, http.StatusInternalServerError, "registration failed", h.Logger)
+		response.NewErrorResponse(c, http.StatusInternalServerError, "registration failed", h.Logger)
 		return
 	}
 
 	token, err := utils.GenerateAccessToken(*h.JWTConfig, user.ID, user.Groups)
 	if err != nil {
 		h.Logger.Error("failed to generate access token", zap.Error(err), zap.Uint("userID", user.ID))
-		response.NewErrorRepsonse(c, http.StatusInternalServerError, "failed to generate token", h.Logger)
+		response.NewErrorResponse(c, http.StatusInternalServerError, "failed to generate token", h.Logger)
 		return
 	}
 	h.Logger.Info("User registered successfully", zap.String("email", user.Email), zap.String("username", user.Username))
@@ -89,13 +94,13 @@ func (h *Handler) Login(c *gin.Context) {
 		Password string `json:"password"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		response.NewErrorRepsonse(c, http.StatusBadRequest, "invalid request body", h.Logger)
+		response.NewErrorResponse(c, http.StatusBadRequest, "invalid request body", h.Logger)
 		return
 	}
 
 	user, err := h.Service.Login(input.Username, input.Password)
 	if err != nil {
-		response.NewErrorRepsonse(c, http.StatusUnauthorized, "invalid credentials", h.Logger)
+		response.NewErrorResponse(c, http.StatusUnauthorized, "invalid credentials", h.Logger)
 		return
 	}
 

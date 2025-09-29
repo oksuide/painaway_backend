@@ -7,13 +7,13 @@ import (
 
 //TODO: Переписать фронт под один ответов
 
-type ErrorRepsonse struct {
+type ErrorResponse struct {
 	Status  int    `json:"status"`
 	Error   string `json:"error"`
 	Message string `json:"message"`
 }
 
-func NewErrorRepsonse(c *gin.Context, statusCode int, message string, logger *zap.Logger) {
+func NewErrorResponse(c *gin.Context, statusCode int, message string, logger *zap.Logger) {
 	var errMsg string
 	switch statusCode {
 	case 400:
@@ -30,7 +30,7 @@ func NewErrorRepsonse(c *gin.Context, statusCode int, message string, logger *za
 		logger.Error(message, zap.Int("status", statusCode), zap.String("error_type", errMsg), zap.String("path", c.Request.URL.Path))
 	}
 
-	c.AbortWithStatusJSON(statusCode, ErrorRepsonse{
+	c.AbortWithStatusJSON(statusCode, ErrorResponse{
 		Status:  statusCode,
 		Error:   errMsg,
 		Message: message,

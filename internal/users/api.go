@@ -21,7 +21,7 @@ func RegisterRoutes(rg *gin.RouterGroup, service *Service, logger *zap.Logger) {
 func (h *Handler) GetProfile(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
-		response.NewErrorRepsonse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
+		response.NewErrorResponse(c, http.StatusUnauthorized, "unauthorized", h.Logger)
 		return
 	}
 	user, err := h.Service.GetProfile(userID.(uint))
@@ -30,7 +30,7 @@ func (h *Handler) GetProfile(c *gin.Context) {
 			zap.Uint("userID", userID.(uint)),
 			zap.Error(err))
 
-		response.NewErrorRepsonse(c, http.StatusInternalServerError, "failed to fetch user profile", h.Logger)
+		response.NewErrorResponse(c, http.StatusInternalServerError, "failed to fetch user profile", h.Logger)
 		return
 	}
 	h.Logger.Info("user profile retrieved", zap.Uint("userID", userID.(uint)))

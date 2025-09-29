@@ -16,14 +16,14 @@ func AuthMiddleware(cfg *config.JWTConfig, logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			response.NewErrorRepsonse(c, http.StatusUnauthorized, "authorization header missing", logger)
+			response.NewErrorResponse(c, http.StatusUnauthorized, "authorization header missing", logger)
 			c.Abort()
 			return
 		}
 
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || parts[0] != "Token" {
-			response.NewErrorRepsonse(c, http.StatusUnauthorized, "invalid authorization header format", logger)
+			response.NewErrorResponse(c, http.StatusUnauthorized, "invalid authorization header format", logger)
 			c.Abort()
 			return
 		}
@@ -34,14 +34,14 @@ func AuthMiddleware(cfg *config.JWTConfig, logger *zap.Logger) gin.HandlerFunc {
 			return []byte(cfg.SecretKey), nil
 		})
 		if err != nil || !token.Valid {
-			response.NewErrorRepsonse(c, http.StatusUnauthorized, "invalid or expired token", logger)
+			response.NewErrorResponse(c, http.StatusUnauthorized, "invalid or expired token", logger)
 			c.Abort()
 			return
 		}
 
 		claims, ok := token.Claims.(*utils.Claims)
 		if !ok {
-			response.NewErrorRepsonse(c, http.StatusUnauthorized, "invalid token claims", logger)
+			response.NewErrorResponse(c, http.StatusUnauthorized, "invalid token claims", logger)
 			c.Abort()
 			return
 		}
